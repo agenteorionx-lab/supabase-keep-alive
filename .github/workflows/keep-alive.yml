@@ -1,0 +1,52 @@
+name: Supabase Multi-Project Keep Alive
+
+on:
+  schedule:
+    # Roda a cada 5 dias às 00:00 UTC
+    - cron: '0 0 */5 * *'
+  workflow_dispatch: # Permite rodar manualmente para testar
+
+jobs:
+  ping-projects:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Identificadores para os seus projetos
+        project_index: [1, 2, 3, 4]
+    steps:
+      - name: Ping Supabase Heartbeat for Project ${{ matrix.project_index }}
+        run: |
+          # Define as variáveis baseadas no índice do projeto
+          case "${{ matrix.project_index }}" in
+            1)
+              URL="${{ secrets.SUPABASE_URL_1 }}"
+              KEY="${{ secrets.SUPABASE_SERVICE_ROLE_KEY_1 }}"
+              ;;
+            2)
+              URL="${{ secrets.SUPABASE_URL_2 }}"
+              KEY="${{ secrets.SUPABASE_SERVICE_ROLE_KEY_2 }}"
+              ;;
+            3)
+              URL="${{ secrets.SUPABASE_URL_3 }}"
+              KEY="${{ secrets.SUPABASE_SERVICE_ROLE_KEY_3 }}"
+              ;;
+            4)
+              URL="${{ secrets.SUPABASE_URL_4 }}"
+              KEY="${{ secrets.SUPABASE_SERVICE_ROLE_KEY_4 }}"
+              ;;
+          esac
+
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then
+            echo "Aviso: URL ou Key não configurada para o Projeto ${{ matrix.project_index }}. Pulando..."
+            exit 0
+          fi
+
+          echo "Pingando projeto ${{ matrix.project_index }}..."
+          
+          # Upsert (Insere ou Atualiza) na tabela heartbeat
+          curl -X POST "${URL}/rest/v1/heartbeat" \
+          -H "apikey: ${KEY}" \
+          -H "Authorization: Bearer ${KEY}" \
+          -H "Content-Type: application/json" \
+          -H "Prefer: resolution=merge-duplicates" \
+          -d '{"id": 1, "last_ping": "now()"}'
